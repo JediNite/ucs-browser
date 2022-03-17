@@ -2366,9 +2366,23 @@ function Get_CCO_Credentials
 		Clear-Host
 		Write-Host "Please enter CCO Credentials"
 		$error.clear()
+
+		# Clunky workaround to get a valid UcsHandle for Get-UcsSoftwareImageList to work.  Requires a working connection to at least one UCS instance
+		$index = 1
+		$target = @{}
+		foreach	($Domain in $UCS.get_keys()) {
+			while ($index -eq 1) {
+				if(HandleExists($UCS[$Domain]))
+				{
+					$UcsHandle = $UCS[$Domain].Handle
+					$index++
+				}
+			}
+		}
+
 		try {
 			$testCreds = Get-Credential
-			$imageList = Get-UcsCcoImageList -Credential $testCreds
+			$imageList = Get-UcsSoftwareImageList -AllReleases -Credential $testCreds -Ucs $UcsHandle
 		}
 		catch { 
 			$ans = Read-Host "Error authenticating CCO Credentials.`n`nPress enter to retry or M to return to Main Menu"
@@ -2414,14 +2428,14 @@ if(!(Get_CCO_Credentials)) { return }
 			1 {
 				Clear-Host
 				Write-Host "Generating List.....`n"
-				$CCO_Image_List | where {$_.ImageName -match ("bundle-infra|bundle-b-series|bundle-c-series")} | Select-Object Version,ImageName | Sort-Object Version -descending | Select-Object -first 30 | Format-Table
+				$CCO_Image_List | where {$_.ImageName -match ("bundle-infra|bundle-b-series|bundle-c-series")} | Select-Object ImageVersion,ImageName | Sort-Object ImageVersion -descending | Select-Object -first 30 | Format-Table
 				$ans = Read-Host "`nPress any key to search for more firmware or M to return to the main menu"
 				if ($ans -match "M") { return }
 			}
 			2 {
 				Clear-Host
 				Write-Host "Generating List.....`n"
-				$CCO_Image_List | where {$_.ImageName -match "bxxx-drivers"} | Select-Object Version,ImageName | Sort-Object Version -descending | Format-Table
+				$CCO_Image_List | where {$_.ImageName -match "bxxx-drivers"} | Select-Object ImageVersion,ImageName | Sort-Object ImageVersion -descending | Format-Table
 				$ans = Read-Host "`nPress any key to search for more firmware or M to return to the main menu"
 				if ($ans -match "M") { return }
 			}
@@ -2429,7 +2443,7 @@ if(!(Get_CCO_Credentials)) { return }
 			3 {
 				Clear-Host
 				Write-Host "Generating List.....`n"
-				$CCO_Image_List | where {$_.ImageName -match "bxxx-utils"} | Select-Object Version,ImageName | Sort-Object Version -descending | Format-Table
+				$CCO_Image_List | where {$_.ImageName -match "bxxx-utils"} | Select-Object ImageVersion,ImageName | Sort-Object ImageVersion -descending | Format-Table
 				$ans = Read-Host "`nPress any key to search for more firmware or M to return to the main menu"
 				if ($ans -match "M") { return }
 			}
@@ -2437,7 +2451,7 @@ if(!(Get_CCO_Credentials)) { return }
 			4 {
 				Clear-Host
 				Write-Host "Generating List.....`n"
-				$CCO_Image_List | where {$_.ImageName -notmatch "docs"} | select-object Version,ImageName | Sort-object Version -descending
+				$CCO_Image_List | where {$_.ImageName -notmatch "docs"} | select-object ImageVersion,ImageName | Sort-object ImageVersion -descending
 				$ans = Read-Host "`nPress any key to continue"
 			}
 			
